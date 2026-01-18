@@ -3,17 +3,14 @@ import '../../../../core/domain/entity.dart';
 /// User role enum
 enum UserRole {
   farmer,
-  equipmentProvider,
-  labourProvider;
+  provider;
   
   String get displayName {
     switch (this) {
       case UserRole.farmer:
         return 'Farmer';
-      case UserRole.equipmentProvider:
-        return 'Equipment Provider';
-      case UserRole.labourProvider:
-        return 'Labour Provider';
+      case UserRole.provider:
+        return 'Provider';
     }
   }
 }
@@ -25,7 +22,6 @@ class User extends Entity {
   final String? email;
   final String fullName;
   final UserRole activeRole;
-  final List<UserRole> enabledRoles;
   
   // Location
   final double? latitude;
@@ -35,7 +31,8 @@ class User extends Entity {
   final String? state;
   
   // Profile metadata
-  final String? profileImageUrl;
+  final String? avatarUrl;
+  final bool isVerified;
   final String preferredLanguage;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -46,34 +43,29 @@ class User extends Entity {
     this.email,
     required this.fullName,
     required this.activeRole,
-    required this.enabledRoles,
     this.latitude,
     this.longitude,
     this.addressText,
     this.district,
     this.state,
-    this.profileImageUrl,
+    this.avatarUrl,
+    this.isVerified = false,
     this.preferredLanguage = 'en',
     required this.createdAt,
     required this.updatedAt,
   });
   
-  /// Check if user has a specific role enabled
-  bool hasRole(UserRole role) => enabledRoles.contains(role);
-  
-  /// Check if user can switch to a role
-  bool canSwitchTo(UserRole role) => enabledRoles.contains(role) && role != activeRole;
-  
   /// Check if user is a farmer
   bool get isFarmer => activeRole == UserRole.farmer;
   
-  /// Check if user is any type of provider
-  bool get isProvider => 
-    activeRole == UserRole.equipmentProvider || 
-    activeRole == UserRole.labourProvider;
+  /// Check if user is a provider
+  bool get isProvider => activeRole == UserRole.provider;
   
   /// Check if user has location set
   bool get hasLocation => latitude != null && longitude != null;
+
+  /// Check if profile is complete (has name and location)
+  bool get isProfileComplete => fullName != 'New User' && hasLocation;
   
   /// Copy with method for immutability
   User copyWith({
@@ -82,13 +74,13 @@ class User extends Entity {
     String? email,
     String? fullName,
     UserRole? activeRole,
-    List<UserRole>? enabledRoles,
     double? latitude,
     double? longitude,
     String? addressText,
     String? district,
     String? state,
-    String? profileImageUrl,
+    String? avatarUrl,
+    bool? isVerified,
     String? preferredLanguage,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -99,13 +91,13 @@ class User extends Entity {
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       activeRole: activeRole ?? this.activeRole,
-      enabledRoles: enabledRoles ?? this.enabledRoles,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       addressText: addressText ?? this.addressText,
       district: district ?? this.district,
       state: state ?? this.state,
-      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isVerified: isVerified ?? this.isVerified,
       preferredLanguage: preferredLanguage ?? this.preferredLanguage,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -115,17 +107,15 @@ class User extends Entity {
   @override
   List<Object?> get props => [
     id,
-    phoneNumber,
-    email,
     fullName,
     activeRole,
-    enabledRoles,
     latitude,
     longitude,
     addressText,
     district,
     state,
-    profileImageUrl,
+    avatarUrl,
+    isVerified,
     preferredLanguage,
     createdAt,
     updatedAt,

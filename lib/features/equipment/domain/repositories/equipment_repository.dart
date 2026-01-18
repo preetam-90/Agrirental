@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/equipment.dart';
+import '../entities/nearby_item.dart';
 
 /// Equipment repository interface
 abstract class EquipmentRepository {
@@ -12,6 +13,14 @@ abstract class EquipmentRepository {
     EquipmentType? equipmentType,
     double? minRating,
     double? maxHourlyRate,
+  });
+  
+  /// Search nearby items (equipment or labour)
+  Future<Either<Failure, List<NearbyItem>>> searchNearbyItems({
+    required double userLat,
+    required double userLong,
+    required double radiusKm,
+    required String itemType,
   });
   
   /// Get equipment by ID

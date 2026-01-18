@@ -219,6 +219,64 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(UnknownFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updateProfile({
+    required String fullName,
+    required String addressText,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final isConnected = await networkInfo.isConnected;
+    if (!isConnected) {
+      return const Left(NetworkFailure());
+    }
+
+    try {
+      await remoteDataSource.updateProfile(
+        fullName: fullName,
+        addressText: addressText,
+        latitude: latitude,
+        longitude: longitude,
+      );
+      
+      // Update cache after successful profile update
+      final updatedUser = await remoteDataSource.getCurrentUser();
+      await localDataSource.cacheUser(updatedUser);
+      
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(e.message, e.code));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateProfileRole(UserRole role) async {
+    final isConnected = await networkInfo.isConnected;
+    if (!isConnected) {
+      return const Left(NetworkFailure());
+    }
+
+    try {
+      await remoteDataSource.updateProfileRole(role);
+      
+      // Update cache
+      final updatedUser = await remoteDataSource.getCurrentUser();
+      await localDataSource.cacheUser(updatedUser);
+      
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(e.message, e.code));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
   
   @override
   Future<bool> isAuthenticated() async {

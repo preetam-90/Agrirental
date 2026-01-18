@@ -15,6 +15,7 @@ import '../../domain/usecases/verify_otp.dart';
 import '../../domain/usecases/sign_in_with_email.dart';
 import '../../domain/usecases/sign_up_with_email.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
+import '../../domain/usecases/update_profile.dart';
 
 // ============================================================================
 // Infrastructure Providers
@@ -106,4 +107,9 @@ final getCurrentUserUseCaseProvider = Provider<GetCurrentUser>((ref) {
 /// Sign out use case provider
 final signOutUseCaseProvider = Provider<SignOut>((ref) {
   return SignOut(ref.watch(authRepositoryProvider));
+});
+
+/// Update profile use case provider
+final updateProfileUseCaseProvider = Provider<UpdateProfile>((ref) {
+  return UpdateProfile(ref.watch(authRepositoryProvider));
 });

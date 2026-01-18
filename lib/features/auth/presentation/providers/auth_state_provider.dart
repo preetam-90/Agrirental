@@ -9,6 +9,7 @@ import '../../domain/usecases/verify_otp.dart';
 import '../../domain/usecases/sign_in_with_email.dart';
 import '../../domain/usecases/sign_up_with_email.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
+import '../../domain/usecases/update_profile.dart';
 import 'auth_providers.dart';
 
 /// Authentication state
@@ -60,6 +61,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final SignInWithEmail signInWithEmailUseCase;
   final SignUpWithEmail signUpWithEmailUseCase;
   final SignInWithGoogle signInWithGoogleUseCase;
+  final UpdateProfile updateProfileUseCase;
   
   AuthNotifier({
     required this.sendOTPUseCase,
@@ -69,6 +71,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required this.signInWithEmailUseCase,
     required this.signUpWithEmailUseCase,
     required this.signInWithGoogleUseCase,
+    required this.updateProfileUseCase,
   }) : super(const AuthState()) {
     // Check if user is already authenticated on initialization
     _checkAuthStatus();
@@ -251,6 +254,62 @@ class AuthNotifier extends StateNotifier<AuthState> {
       },
     );
   }
+
+  /// Update user profile
+  Future<bool> updateProfile({
+    required String fullName,
+    required String addressText,
+    required double latitude,
+    required double longitude,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    
+    final result = await updateProfileUseCase(
+      UpdateProfileParams(
+        fullName: fullName,
+        addressText: addressText,
+        latitude: latitude,
+        longitude: longitude,
+      ),
+    );
+    
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: _mapFailureToMessage(failure),
+        );
+        return false;
+      },
+      (_) async {
+        // Success - refresh user data
+        await refreshUser();
+        return true;
+      },
+    );
+  }
+
+  /// Switch user role
+  Future<bool> switchRole(UserRole newRole) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    
+    // We'll add this to repository
+    final result = await updateProfileUseCase.repository.updateProfileRole(newRole);
+    
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: _mapFailureToMessage(failure),
+        );
+        return false;
+      },
+      (_) async {
+        await refreshUser();
+        return true;
+      },
+    );
+  }
   
   /// Sign out current user
   Future<void> signOut() async {
@@ -263,14 +322,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
   
   /// Refresh current user data
   Future<void> refreshUser() async {
+    print('DEBUG REFRESH: Starting user refresh...');
     final result = await getCurrentUserUseCase(const NoParams());
     
     result.fold(
       (failure) {
         // Handle refresh failure silently or show error
+        print('DEBUG REFRESH: Failed to refresh user - $failure');
         state = state.copyWith(isLoading: false);
       },
       (user) {
+        print('DEBUG REFRESH: User refreshed successfully');
+        print('DEBUG REFRESH: User name: ${user.fullName}');
+        print('DEBUG REFRESH: Has location: ${user.hasLocation}');
+        print('DEBUG REFRESH: Latitude: ${user.latitude}, Longitude: ${user.longitude}');
+        print('DEBUG REFRESH: Is profile complete: ${user.isProfileComplete}');
         state = state.copyWith(
           user: user,
           isLoading: false,
@@ -318,6 +384,7 @@ final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref
     signInWithEmailUseCase: ref.watch(signInWithEmailUseCaseProvider),
     signUpWithEmailUseCase: ref.watch(signUpWithEmailUseCaseProvider),
     signInWithGoogleUseCase: ref.watch(signInWithGoogleUseCaseProvider),
+    updateProfileUseCase: ref.watch(updateProfileUseCaseProvider),
   );
 });
 
@@ -329,4 +396,16 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
 /// Convenience provider to get current user
 final currentUserProvider = Provider<User?>((ref) {
   return ref.watch(authNotifierProvider).user;
+});
+
+/// Convenience provider to check if profile is complete
+final isProfileCompleteProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.isProfileComplete ?? false;
+});
+
+/// State provider for tracking active role (Farmer or Provider)
+final userRoleProvider = StateProvider<UserRole>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.activeRole ?? UserRole.farmer;
 });

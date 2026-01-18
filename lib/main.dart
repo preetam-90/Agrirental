@@ -5,7 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/onboarding_page.dart';
+import 'features/equipment/presentation/pages/farmer_dashboard.dart';
+import 'features/equipment/presentation/pages/provider_dashboard.dart';
+// Providers and user role
 import 'features/auth/presentation/providers/auth_state_provider.dart';
+import 'features/auth/domain/entities/user.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized
@@ -38,8 +43,9 @@ class AgriServeApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch authentication state
+    // Watch authentication and profile state
     final isAuthenticated = ref.watch(isAuthenticatedProvider);
+    final isProfileComplete = ref.watch(isProfileCompleteProvider);
     
     return MaterialApp(
       title: AppConstants.appName,
@@ -56,75 +62,28 @@ class AgriServeApp extends ConsumerWidget {
         Locale('hi', ''), // Hindi
       ],
       
-      // Simple routing (will be replaced with GoRouter)
-      home: isAuthenticated ? const HomePage() : const LoginPage(),
+      // Routing logic
+      home: !isAuthenticated 
+          ? const LoginPage() 
+          : !isProfileComplete 
+              ? const OnboardingPage() 
+              : const HomePage(),
     );
   }
 }
 
-/// Placeholder home page
-/// TODO: Implement proper home page with role-based UI
+/// Home page that switches between Farmer and Provider dashboards
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
-    final authNotifier = ref.read(authNotifierProvider.notifier);
+    final activeRole = ref.watch(userRoleProvider);
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('AgriServe'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authNotifier.signOut();
-            },
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 100,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Welcome ${user?.fullName ?? "User"}!',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            if (user?.email != null)
-              Text(
-                'Email: ${user!.email}',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            if (user?.phoneNumber != null)
-              Text(
-                'Phone: ${user!.phoneNumber}',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            const SizedBox(height: 8),
-            Text(
-              'Role: ${user?.activeRole.displayName ?? ""}',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Authentication System Working! ✅',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (activeRole == UserRole.provider) {
+      return const ProviderDashboard();
+    }
+    
+    return const FarmerDashboard();
   }
 }

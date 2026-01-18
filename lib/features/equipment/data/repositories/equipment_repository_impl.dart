@@ -4,6 +4,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/equipment.dart';
+import '../../domain/entities/nearby_item.dart';
 import '../../domain/repositories/equipment_repository.dart';
 import '../datasources/cloudinary_datasource.dart';
 import '../datasources/equipment_remote_datasource.dart';
@@ -50,8 +51,33 @@ class EquipmentRepositoryImpl implements EquipmentRepository {
       return Right(equipment);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
-    } on NetworkException {
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+  
+  @override
+  Future<Either<Failure, List<NearbyItem>>> searchNearbyItems({
+    required double userLat,
+    required double userLong,
+    required double radiusKm,
+    required String itemType,
+  }) async {
+    final isConnected = await networkInfo.isConnected;
+    if (!isConnected) {
       return const Left(NetworkFailure());
+    }
+    
+    try {
+      final nearbyItems = await remoteDataSource.searchNearbyItems(
+        userLat: userLat,
+        userLong: userLong,
+        radiusKm: radiusKm,
+        itemType: itemType,
+      );
+      return Right(nearbyItems);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     } catch (e) {
       return Left(UnknownFailure(e.toString()));
     }

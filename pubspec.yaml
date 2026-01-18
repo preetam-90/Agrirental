@@ -25,6 +25,7 @@ dependencies:
   
   # Geolocation
   geolocator: ^11.0.0
+  google_maps_flutter: ^2.5.3
   permission_handler: ^11.3.0
   
   # Image Management

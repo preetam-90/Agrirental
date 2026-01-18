@@ -8,13 +8,13 @@ class UserModel extends User {
     super.email,
     required super.fullName,
     required super.activeRole,
-    required super.enabledRoles,
     super.latitude,
     super.longitude,
     super.addressText,
     super.district,
     super.state,
-    super.profileImageUrl,
+    super.avatarUrl,
+    super.isVerified,
     super.preferredLanguage,
     required super.createdAt,
     required super.updatedAt,
@@ -22,12 +22,6 @@ class UserModel extends User {
   
   /// Create UserModel from JSON (Supabase response)
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    // Parse enabled_roles array from database
-    final enabledRolesRaw = json['enabled_roles'] as List<dynamic>?;
-    final enabledRoles = enabledRolesRaw?.map((role) {
-      return _parseUserRole(role.toString());
-    }).toList() ?? [UserRole.farmer];
-    
     // Parse location from PostGIS geography point if available
     double? lat;
     double? lng;
@@ -47,13 +41,13 @@ class UserModel extends User {
       email: json['email'] as String?,
       fullName: json['full_name'] as String? ?? 'User',
       activeRole: _parseUserRole(json['active_role'] as String? ?? 'farmer'),
-      enabledRoles: enabledRoles,
       latitude: lat,
       longitude: lng,
       addressText: json['address_text'] as String?,
       district: json['district'] as String?,
       state: json['state'] as String?,
-      profileImageUrl: json['profile_image_url'] as String?,
+      avatarUrl: json['profile_image_url'] as String?,
+      isVerified: json['is_verified'] as bool? ?? false,
       preferredLanguage: json['preferred_language'] as String? ?? 'en',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -65,14 +59,13 @@ class UserModel extends User {
     final Map<String, dynamic> json = {
       'id': id,
       if (phoneNumber != null) 'phone_number': phoneNumber,
-      if (email != null) 'email': email,
       'full_name': fullName,
       'active_role': _userRoleToString(activeRole),
-      'enabled_roles': enabledRoles.map(_userRoleToString).toList(),
+      'is_verified': isVerified,
       'address_text': addressText,
       'district': district,
       'state': state,
-      'profile_image_url': profileImageUrl,
+      'profile_image_url': avatarUrl,
       'preferred_language': preferredLanguage,
     };
     
@@ -93,9 +86,7 @@ class UserModel extends User {
       case 'farmer':
         return UserRole.farmer;
       case 'equipment_provider':
-        return UserRole.equipmentProvider;
-      case 'labour_provider':
-        return UserRole.labourProvider;
+        return UserRole.provider;
       default:
         return UserRole.farmer;
     }
@@ -106,10 +97,8 @@ class UserModel extends User {
     switch (role) {
       case UserRole.farmer:
         return 'farmer';
-      case UserRole.equipmentProvider:
+      case UserRole.provider:
         return 'equipment_provider';
-      case UserRole.labourProvider:
-        return 'labour_provider';
     }
   }
   
@@ -121,13 +110,13 @@ class UserModel extends User {
       email: email,
       fullName: fullName,
       activeRole: activeRole,
-      enabledRoles: enabledRoles,
       latitude: latitude,
       longitude: longitude,
       addressText: addressText,
       district: district,
       state: state,
-      profileImageUrl: profileImageUrl,
+      avatarUrl: avatarUrl,
+      isVerified: isVerified,
       preferredLanguage: preferredLanguage,
       createdAt: createdAt,
       updatedAt: updatedAt,

@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/equipment.dart';
+import '../../domain/entities/nearby_item.dart';
 import '../models/equipment_model.dart';
 
 /// Remote data source for equipment using Supabase and PostGIS
@@ -12,6 +13,14 @@ abstract class EquipmentRemoteDataSource {
     EquipmentType? equipmentType,
     double? minRating,
     double? maxHourlyRate,
+  });
+  
+  /// Search nearby items (equipment or labour)
+  Future<List<NearbyItem>> searchNearbyItems({
+    required double userLat,
+    required double userLong,
+    required double radiusKm,
+    required String itemType,
   });
   
   /// Get equipment by ID
@@ -44,7 +53,6 @@ class EquipmentRemoteDataSourceImpl implements EquipmentRemoteDataSource {
     double? maxHourlyRate,
   }) async {
     try {
-      // Call the PostGIS search function created in schema
       final response = await supabaseClient.rpc(
         'search_equipment_nearby',
         params: {
@@ -58,16 +66,45 @@ class EquipmentRemoteDataSourceImpl implements EquipmentRemoteDataSource {
         },
       );
       
-      if (response == null) {
-        return [];
-      }
+      if (response == null) return [];
       
       final List<dynamic> data = response as List<dynamic>;
       return data.map((json) => EquipmentModel.fromJson(json as Map<String, dynamic>)).toList();
     } on PostgrestException catch (e) {
-      throw ServerException('Failed to search equipment: ${e.message}', e.code != null ? int.tryParse(e.code!) : null);
+      throw ServerException('Failed to search equipment: ${e.message}', 
+        e.code != null ? int.tryParse(e.code!) : null);
     } catch (e) {
       throw ServerException('Failed to search equipment: ${e.toString()}');
+    }
+  }
+  
+  @override
+  Future<List<NearbyItem>> searchNearbyItems({
+    required double userLat,
+    required double userLong,
+    required double radiusKm,
+    required String itemType,
+  }) async {
+    try {
+      final response = await supabaseClient.rpc(
+        'search_nearby_items',
+        params: {
+          'user_lat': userLat,
+          'user_long': userLong,
+          'radius_km': radiusKm,
+          'item_type': itemType,
+        },
+      );
+      
+      if (response == null) return [];
+      
+      final List<dynamic> data = response as List<dynamic>;
+      return data.map((json) => NearbyItem.fromJson(json as Map<String, dynamic>, itemType)).toList();
+    } on PostgrestException catch (e) {
+      throw ServerException('Failed to search nearby items: ${e.message}', 
+        e.code != null ? int.tryParse(e.code!) : null);
+    } catch (e) {
+      throw ServerException('Failed to search nearby items: ${e.toString()}');
     }
   }
   

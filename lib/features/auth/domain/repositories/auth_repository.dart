@@ -39,6 +39,17 @@ abstract class AuthRepository {
   /// Sign out current user
   Future<Either<Failure, void>> signOut();
   
+  /// Update user profile
+  Future<Either<Failure, void>> updateProfile({
+    required String fullName,
+    required String addressText,
+    required double latitude,
+    required    double longitude,
+  });
+  
+  /// Update user current role
+  Future<Either<Failure, void>> updateProfileRole(UserRole role);
+  
   /// Check if user is authenticated
   Future<bool> isAuthenticated();
 }

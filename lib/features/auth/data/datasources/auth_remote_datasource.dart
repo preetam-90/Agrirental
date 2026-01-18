@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
 import 'package:supabase_flutter/supabase_flutter.dart' as sb show AuthException;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../core/error/exceptions.dart';
+import '../../domain/entities/user.dart';
 import '../models/user_model.dart';
 
 /// Remote data source for authentication using Supabase
@@ -36,6 +37,17 @@ abstract class AuthRemoteDataSource {
   
   /// Sign out current user
   Future<void> signOut();
+  
+  /// Update user profile
+  Future<void> updateProfile({
+    required String fullName,
+    required String addressText,
+    required double latitude,
+    required double longitude,
+  });
+  
+  /// Update user current role
+  Future<void> updateProfileRole(UserRole role);
   
   /// Check if user is authenticated
   Future<bool> isAuthenticated();
@@ -151,9 +163,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<bool> signInWithGoogle() async {
     try {
+      // Determine the redirect URL based on platform
+      final redirectUrl = kIsWeb 
+        ? Uri.base.toString().replaceAll(RegExp(r'/+$'), '') // Remove trailing slash
+        : 'io.supabase.agriflutter://login-callback/';
+      
       final bool result = await supabaseClient.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? 'http://localhost:8080' : 'io.supabase.agriflutter://login-callback/',
+        redirectTo: redirectUrl,
       );
       return result;
     } on sb.AuthException catch (e) {
@@ -164,37 +181,60 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   Future<UserModel> _getOrCreateUserProfile(String userId, {String? phone, String? email, String? fullName}) async {
-    // Fetch or create user profile from user_profiles table
-      final profileResponse = await supabaseClient
-          .from('user_profiles')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
-      
-      if (profileResponse == null) {
-        // First-time user - create profile
+    // Fetch user profile from user_profiles table
+    // Use ST_AsGeoJSON to get location as proper GeoJSON
+    final profileResponse = await supabaseClient
+        .from('user_profiles')
+        .select('*, location:location::geometry')
+        .eq('id', userId)
+        .maybeSingle();
+    
+    print('DEBUG PROFILE FETCH: Profile response: $profileResponse');
+    
+    if (profileResponse == null) {
+      // Create a new profile in the database
+      try {
         final newProfile = {
           'id': userId,
-          if (phone != null) 'phone_number': phone,
-          if (email != null) 'email': email,
-          'full_name': fullName ?? email ?? phone ?? 'User', 
+          'phone_number': phone,
+          'full_name': fullName ?? 'User',
           'active_role': 'farmer',
           'enabled_roles': ['farmer'],
           'preferred_language': 'en',
-        };
-        
-        await supabaseClient
-            .from('user_profiles')
-            .insert(newProfile);
-        
-        return UserModel.fromJson({
-          ...newProfile,
+          'is_profile_complete': false,
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
-        });
+        };
+        
+        await supabaseClient.from('user_profiles').insert(newProfile);
+        
+        // Return the newly created profile
+        return UserModel(
+          id: userId,
+          phoneNumber: phone,
+          email: email,
+          fullName: fullName ?? 'User',
+          activeRole: UserRole.farmer,
+          isVerified: false,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      } catch (e) {
+        // If profile creation fails, still return a minimal user for the UI to handle
+        return UserModel(
+          id: userId,
+          phoneNumber: phone,
+          email: email,
+          fullName: fullName ?? 'User',
+          activeRole: UserRole.farmer,
+          isVerified: false,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
       }
-      
-      return UserModel.fromJson(profileResponse);
+    }
+    
+    return UserModel.fromJson(profileResponse);
   }
   
   @override
@@ -234,6 +274,64 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
   
+  @override
+  Future<void> updateProfile({
+    required String fullName,
+    required String addressText,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final userId = supabaseClient.auth.currentUser?.id;
+      if (userId == null) throw AuthException('Not authenticated', '401');
+
+      // PostGIS expects WKT (Well-Known Text) format
+      final locationGeoJson = 'POINT($longitude $latitude)';
+
+      final profileData = {
+        'full_name': fullName,
+        'address_text': addressText,
+        'location': locationGeoJson,
+        'is_profile_complete': true,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      print('DEBUG DATASOURCE: Updating profile with data: $profileData');
+      // Use update() instead of upsert() since profile already exists
+      final response = await supabaseClient
+          .from('user_profiles')
+          .update(profileData)
+          .eq('id', userId)
+          .select();
+      print('DEBUG DATASOURCE: Update response: $response');
+    } on PostgrestException catch (e) {
+      print('DEBUG DATASOURCE: PostgrestException: ${e.message}, code: ${e.code}');
+      throw ServerException('Failed to update profile: ${e.message}', 
+        e.code != null ? int.tryParse(e.code!) : null);
+    } catch (e) {
+      print('DEBUG DATASOURCE: Exception: $e');
+      throw ServerException('Failed to update profile: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> updateProfileRole(UserRole role) async {
+    try {
+      final userId = supabaseClient.auth.currentUser?.id;
+      if (userId == null) throw AuthException('Not authenticated', '401');
+
+      await supabaseClient.from('user_profiles').update({
+        'active_role': role == UserRole.farmer ? 'farmer' : 'equipment_provider',
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
+    } on PostgrestException catch (e) {
+      throw ServerException('Failed to update role: ${e.message}', 
+        e.code != null ? int.tryParse(e.code!) : null);
+    } catch (e) {
+      throw ServerException('Failed to update role: ${e.toString()}');
+    }
+  }
+
   @override
   Future<bool> isAuthenticated() async {
     try {
