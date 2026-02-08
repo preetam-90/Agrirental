@@ -1,191 +1,215 @@
-# AgriServe - Hyperlocal Agriculture Marketplace
+# 🌾 AgriServe
 
-A production-ready Flutter application connecting farmers with agricultural equipment and specialized labour services through geospatial matching.
+> A hyperlocal agriculture marketplace built with Flutter + Supabase to connect farmers with equipment owners and skilled labour providers through location-aware matching.
 
-## Project Status
+[![Flutter](https://img.shields.io/badge/Flutter-3.22%2B-02569B?logo=flutter&logoColor=white)](https://docs.flutter.dev/)
+[![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)](https://dart.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20PostGIS-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-6C63FF)](#architecture)
 
-**Current Phase:** Planning & Foundation Setup ✅
+---
 
-**Completed:**
-- ✅ Database schema with PostGIS
-- ✅ Clean Architecture structure
-- ✅ Core utilities and theme
-- ✅ Domain entities
+## ✨ Why AgriServe?
 
-**Next Steps:**
-1. Install Flutter SDK
-2. Configure Supabase project
-3. Implement authentication module
-4. Build geospatial search
+AgriServe helps rural communities discover and book nearby agricultural services quickly and reliably:
 
-## Tech Stack
+- 🔎 **Geo-search** for equipment and labour providers using PostGIS radius filtering.
+- 👥 **Dual-role accounts** (Farmer/Provider) with seamless role switching.
+- 📦 **Structured booking lifecycle** from request to completion.
+- 🔐 **OTP-verified milestones** to reduce fraud and disputes.
+- 💳 **Escrow-style payments** with Razorpay.
+- 📶 **Offline-aware experience** using local caching.
 
-- **Frontend:** Flutter 3.2+ with Material 3
-- **Backend:** Supabase (PostgreSQL + PostGIS)
-- **State Management:** Riverpod
-- **Navigation:** GoRouter
-- **Local Storage:** Hive
-- **Image Storage:** Cloudinary
-- **Payments:** Razorpay
-- **Localization:** Hindi + English
+---
 
-## Project Structure
+## 🧱 Tech Stack
 
-```
-lib/
-├── core/                      # Shared utilities
-│   ├── constants/            # App constants, strings
-│   ├── error/                # Error handling
-│   ├── network/              # Network connectivity
-│   ├── theme/                # Material 3 theme
-│   └── utils/                # Helpers, validators
-│
-├── features/                 # Feature modules
-│   ├── auth/                 # OTP authentication
-│   ├── profile/              # Multi-role profile
-│   ├── equipment/            # Equipment listings & search
-│   ├── labour/               # Labour profiles & search
-│   ├── booking/              # Booking lifecycle
-│   └── payment/              # Razorpay integration
-│
-└── main.dart                 # App entry point
-```
+| Layer | Technology |
+|---|---|
+| Frontend | Flutter (Material 3), Dart |
+| State Management | Riverpod |
+| Routing | GoRouter |
+| Backend | Supabase (PostgreSQL + PostGIS) |
+| Local Storage | Hive |
+| Media Storage | Cloudinary |
+| Payments | Razorpay |
+| Localization | Hindi + English |
 
-## Setup Instructions
+---
 
-### 1. Install Flutter
+## 🚀 Quick Start
+
+### 1) Prerequisites
+
+- Flutter SDK (3.22+ recommended)
+- Dart SDK (bundled with Flutter)
+- A Supabase project
+- Razorpay and Cloudinary credentials
+
+Check your setup:
 
 ```bash
-# Follow official Flutter installation guide
-# https://docs.flutter.dev/get-started/install
-
 flutter doctor
 ```
 
-### 2. Configure Environment Variables
+### 2) Clone and install dependencies
 
-Copy `.env.example` to `.env` and fill in your credentials:
+```bash
+git clone <your-repo-url>
+cd Agrirental
+flutter pub get
+```
+
+### 3) Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Required credentials:
-- Supabase URL and Anon Key
-- Razorpay API keys
-- Cloudinary configuration
+Then populate `.env` with your keys:
 
-### 3. Database Setup
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- Razorpay keys
+- Cloudinary values
 
-1. Create Supabase project at https://supabase.com
-2. Enable PostGIS extension in SQL Editor:
+### 4) Provision database
+
+1. Create a new Supabase project.
+2. Enable PostGIS:
+
    ```sql
    CREATE EXTENSION IF NOT EXISTS postgis;
    ```
-3. Execute `supabase_schema.sql` in SQL Editor
-4. Verify Row Level Security policies are enabled
 
-### 4. Install Dependencies
+3. Run `supabase_schema.sql` in the SQL editor.
+4. Verify Row Level Security policies are enabled.
 
-```bash
-flutter pub get
-```
-
-### 5. Run Code Generation
+### 5) Generate code (if needed)
 
 ```bash
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-### 6. Run Application
+### 6) Run the app
 
 ```bash
 flutter run
 ```
 
-## Key Features
+---
+
+## 🧭 Project Status
+
+**Current phase:** Foundation complete, feature implementation in progress.
+
+### Completed
+
+- ✅ Database schema with PostGIS
+- ✅ Clean Architecture foundation
+- ✅ Core theme/utilities scaffolding
+- ✅ Initial domain entity modeling
+
+### Next
+
+1. Authentication module completion
+2. End-to-end geospatial search flow
+3. Booking + payment integration hardening
+4. Production deployment workflow
+
+---
+
+## 🗂️ Project Structure
+
+```text
+lib/
+├── core/                      # Shared infrastructure
+│   ├── constants/            # App-wide constants and strings
+│   ├── error/                # Failure models and error mapping
+│   ├── network/              # Connectivity and network helpers
+│   ├── theme/                # Material 3 design system
+│   └── utils/                # Generic helpers and validators
+├── features/                 # Vertical feature modules
+│   ├── auth/                 # OTP-based authentication
+│   ├── profile/              # Multi-role user profiles
+│   ├── equipment/            # Listings and discovery
+│   ├── labour/               # Labour profiles and search
+│   ├── booking/              # Request-to-completion flow
+│   └── payment/              # Razorpay integration
+└── main.dart                 # App bootstrap
+```
+
+---
+
+## 🧠 Architecture
+
+AgriServe follows **Clean Architecture**:
+
+- **Domain**: Entities, repository contracts, use-cases.
+- **Data**: Models, data sources, repository implementations.
+- **Presentation**: UI widgets/pages, Riverpod providers, state.
+
+### Conventions
+
+- Files: `snake_case.dart`
+- Classes: `PascalCase`
+- Variables: `camelCase`
+- Constants: `SCREAMING_SNAKE_CASE`
+
+---
+
+## 🔐 Core Product Flows
 
 ### Geospatial Search
-- Providers define service radius (5-100 km)
-- Farmers search based on live GPS location
-- PostGIS `ST_DWithin` for radius-based filtering
-- Results sorted by distance
 
-### Multi-Role System
-- Single account, switchable roles (Farmer/Provider)
-- Context-aware UI based on active role
-- Seamless role switching
+- Providers define service radius (5–100 km).
+- Farmers search from live/current location.
+- Filtering is handled with `ST_DWithin` and sorted by distance.
 
 ### Booking Lifecycle
-1. **Pending** - Farmer sends request
-2. **Accepted** - Provider approves
-3. **In Progress** - Job started (OTP verified)
-4. **Completed** - Job ended (OTP verified)
 
-### OTP Verification
-- 6-digit OTP for job start/end
-- SMS delivery via Supabase Auth
-- Prevents fraudulent job completion claims
+1. **Pending** – Request created by farmer.
+2. **Accepted** – Provider approves.
+3. **In Progress** – OTP-verified start.
+4. **Completed** – OTP-verified closure + payment release.
 
-### Escrow Payments
-- Farmer pays upfront via Razorpay
-- Amount held until job completion
-- Auto-release after OTP verification
-- Provider protection with escrow
+### Role Switching
 
-### Offline-First
-- Hive caches user profile, bookings
-- Graceful degradation for geospatial searches
-- Sync when connection restored
+- Single account can operate as Farmer or Provider.
+- Context-aware UI updates by active role.
 
-## Development Guidelines
+---
 
-### Clean Architecture Layers
-
-**Domain Layer:**
-- Pure Dart entities
-- Use cases (business logic)
-- Repository interfaces
-
-**Data Layer:**
-- Repository implementations
-- Data sources (remote/local)
-- Models with JSON serialization
-
-**Presentation Layer:**
-- Pages and widgets
-- Riverpod providers
-- State management
-
-### Naming Conventions
-
-- **Files:** `snake_case.dart`
-- **Classes:** `PascalCase`
-- **Variables:** `camelCase`
-- **Constants:** `SCREAMING_SNAKE_CASE`
-
-## Testing
+## 🧪 Testing
 
 ```bash
-# Run unit tests
 flutter test
-
-# Run with coverage
 flutter test --coverage
 ```
 
-## Contributing
+---
 
-1. Follow Clean Architecture principles
-2. Use Either<Failure, Success> for error handling
-3. Maintain bilingual support (Hindi/English)
-4. Ensure Material 3 accessibility (48dp touch targets)
-5. Test offline functionality
+## 🤝 Contributing
 
-## License
+When contributing:
 
-Proprietary - AgriServe 2026
+1. Respect Clean Architecture boundaries.
+2. Preserve bilingual UX (Hindi/English).
+3. Maintain accessible Material 3 patterns (e.g., touch targets).
+4. Validate offline resilience where applicable.
 
-## Contact
+---
 
-For questions or support, contact the development team.
+## 📚 Additional Docs
+
+- `QUICK_SETUP.md`
+- `SETUP.md`
+- `DEPLOYMENT_CHECKLIST.md`
+- `AUTH_FIXES_DOCUMENTATION.md`
+- `AUTH_FIXES_INDEX.md`
+
+---
+
+## 📄 License
+
+Proprietary © AgriServe 2026
